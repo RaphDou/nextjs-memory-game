@@ -11,13 +11,13 @@ import {
   CardContent,
   Snackbar,
   Box,
+  Tooltip,
 } from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
 import { ArrowBack, Star } from '@mui/icons-material';
 
 const Card = styled(MuiCard)({
   cursor: 'pointer',
-  backgroundColor: '#3f51b5',
 });
 
 const PageContainer = styled(Container)(({ theme }) => ({
@@ -26,6 +26,7 @@ const PageContainer = styled(Container)(({ theme }) => ({
   alignItems: 'center',
   justifyContent: 'center',
   minHeight: '100vh',
+  background: theme.palette.background.default,
 }));
 
 const StyledButton = styled(Button)<{ selected: boolean }>(({ theme, selected }) => ({
@@ -53,18 +54,31 @@ const ReplayButton = styled(Button)({
   textTransform: 'none',
 });
 
-const StarsContainer = styled(Box)({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginTop: '5px',
-});
-
 const levels = [
-  { pairsCount: 2, timeLimit: 60 },
-  { pairsCount: 4, timeLimit: 90 },
-  { pairsCount: 6, timeLimit: 120 },
-  // Ajoutez plus de niveaux selon vos besoins
+  {
+    name: 'Beginner',
+    description: 'A simple level for beginners. Match 4 pairs within 60 seconds with a maximum of 3 errors.',
+    pairsCount: 4,
+    timeLimit: 60,
+    maxErrors: 3,
+    background: '#CFF09E',
+  },
+  {
+    name: 'Intermediate',
+    description: 'An intermediate level for those looking for a challenge. Match 6 pairs within 90 seconds with a maximum of 4 errors.',
+    pairsCount: 6,
+    timeLimit: 90,
+    maxErrors: 4,
+    background: '#FEB95F',
+  },
+  {
+    name: 'Advanced',
+    description: 'An advanced level for experts. Match 8 pairs within 120 seconds with a maximum of 5 errors.',
+    pairsCount: 8,
+    timeLimit: 120,
+    maxErrors: 5,
+    background: '#FF6F61',
+  },
 ];
 
 const Page: React.FC = () => {
@@ -169,7 +183,11 @@ const Page: React.FC = () => {
       <Grid item xs={3} key={index}>
         <Card
           onClick={() => isClickable && handleCardClick(index)}
-          style={{ backgroundColor: isRevealed ? '#FFF' : '#3f51b5', pointerEvents: isClickable ? 'auto' : 'none' }}
+          style={{
+            backgroundColor: isRevealed ? '#FFF' : '#3f51b5',
+            pointerEvents: isClickable ? 'auto' : 'none',
+            boxShadow: isRevealed ? '0 0 10px rgba(0, 0, 0, 0.5)' : 'none',
+          }}
         >
           <CardContent>
             <Typography variant="h3" align="center" style={{ color: isRevealed ? '#3f51b5' : '#FFF' }}>
@@ -214,7 +232,7 @@ const Page: React.FC = () => {
       setCards(generateCards(level.pairsCount));
       setRevealedCards([]);
       setMatchedPairs(0);
-      setGameStarted(true); // Commencer le jeu immédiatement après avoir appuyé sur le bouton "Rejouer"
+      setGameStarted(true); // Start the game immediately upon clicking "Replay"
       setGameOver(false);
       setTimeLeft(level.timeLimit);
       setFoundPairs([]);
@@ -229,7 +247,7 @@ const Page: React.FC = () => {
   };
 
   return (
-    <PageContainer>
+    <PageContainer style={{ background: selectedLevelIndex !== null ? levels[selectedLevelIndex].background : theme.palette.background.default }}>
       <Typography variant="h2" align="center" gutterBottom>
         Memory Game
       </Typography>
@@ -243,12 +261,14 @@ const Page: React.FC = () => {
           <Grid container spacing={2} justifyContent="center">
             {levels.map((level, index) => (
               <Grid item key={index}>
-                <StyledButton
-                  selected={selectedLevelIndex === index}
-                  onClick={() => setSelectedLevelIndex(index)}
-                >
-                  {level.pairsCount} Pairs
-                </StyledButton>
+                <Tooltip title={level.description} arrow>
+                  <StyledButton
+                    selected={selectedLevelIndex === index}
+                    onClick={() => setSelectedLevelIndex(index)}
+                  >
+                    {level.name}
+                  </StyledButton>
+                </Tooltip>
               </Grid>
             ))}
           </Grid>
