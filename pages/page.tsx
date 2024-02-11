@@ -60,40 +60,61 @@ const StarsContainer = styled(Box)({
   marginTop: '5px',
 });
 
+const levels = [
+  { pairsCount: 2, timeLimit: 60 },
+  { pairsCount: 4, timeLimit: 90 },
+  { pairsCount: 6, timeLimit: 120 },
+  // Ajoutez plus de niveaux selon vos besoins
+];
+
 const Page: React.FC = () => {
   const router = useRouter();
   const theme = useTheme();
-  const [pairsCount, setPairsCount] = useState<number>(4); // Default number of pairs
+  const [selectedLevelIndex, setSelectedLevelIndex] = useState<number | null>(null);
   const [cards, setCards] = useState<number[]>([]);
   const [revealedCards, setRevealedCards] = useState<number[]>([]);
   const [matchedPairs, setMatchedPairs] = useState<number>(0);
   const [gameStarted, setGameStarted] = useState<boolean>(false);
   const [gameOver, setGameOver] = useState<boolean>(false);
-  const [timeLeft, setTimeLeft] = useState<number>(90); // 1 minute 30 seconds in seconds
+  const [timeLeft, setTimeLeft] = useState<number>(0);
   const [foundPairs, setFoundPairs] = useState<number[]>([]);
   const [errorsCount, setErrorsCount] = useState<number>(0);
   const [showGame, setShowGame] = useState<boolean>(false);
   const [starsEarned, setStarsEarned] = useState<number>(0);
-
-  // Store game statistics for each level
-  const [levelStats, setLevelStats] = useState<{ [key: number]: { errors: number; time: number; stars: number } }>({});
+  const [totalStars, setTotalStars] = useState<number>(0);
+  const [levelStats, setLevelStats] = useState<{ [key: number]: { errors: number; timeTaken: number; stars: number } }>({});
 
   useEffect(() => {
-    generateCards();
-  }, [pairsCount]);
+    if (selectedLevelIndex !== null) {
+      initializeLevel();
+    }
+  }, [selectedLevelIndex]);
 
-  const generateCards = () => {
+  const initializeLevel = () => {
+    const level = levels[selectedLevelIndex];
+    setCards(generateCards(level.pairsCount));
+    setRevealedCards([]);
+    setMatchedPairs(0);
+    setGameStarted(false);
+    setGameOver(false);
+    setTimeLeft(level.timeLimit);
+    setFoundPairs([]);
+    setErrorsCount(0);
+    setStarsEarned(0);
+  };
+
+  const generateCards = (pairsCount: number): number[] => {
     const pairs = [];
     for (let i = 1; i <= pairsCount; i++) {
       pairs.push(i, i);
     }
     pairs.sort(() => Math.random() - 0.5);
-    setCards(pairs);
+    return pairs;
   };
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (gameStarted && !gameOver && matchedPairs !== pairsCount) {
+    if (gameStarted && !gameOver && selectedLevelIndex !== null && matchedPairs !== levels[selectedLevelIndex]?.pairsCount) {
       timer = setInterval(() => {
         setTimeLeft((prevTimeLeft) => {
           if (prevTimeLeft === 0) {
@@ -106,7 +127,7 @@ const Page: React.FC = () => {
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [gameStarted, gameOver, matchedPairs, pairsCount]);
+  }, [gameStarted, gameOver, matchedPairs, selectedLevelIndex]);
 
   const handleCardClick = (index: number) => {
     if (!gameStarted || revealedCards.length >= 2 || foundPairs.includes(cards[index]) || revealedCards.includes(index)) {
@@ -125,22 +146,13 @@ const Page: React.FC = () => {
         setFoundPairs([...foundPairs, cards[firstIndex]]);
         setRevealedCards([]);
 
-        if (matchedPairs + 1 === pairsCount) {
+        if (matchedPairs + 1 === levels[selectedLevelIndex].pairsCount) {
           const stars = calculateStars();
           setStarsEarned(stars);
-
-          // Update level stats
-          setLevelStats({
-            ...levelStats,
-            [pairsCount]: {
-              errors: errorsCount,
-              time: 90 - timeLeft,
-              stars: stars,
-            },
-          });
+          updateLevelStats(stars);
         }
       } else {
-        setErrorsCount(errorsCount + 1); // Increment errors count
+        setErrorsCount(errorsCount + 1);
         setTimeout(() => {
           setRevealedCards(revealedCards.filter(cardIndex => cardIndex !== firstIndex && cardIndex !== secondIndex));
         }, 1000);
@@ -149,7 +161,7 @@ const Page: React.FC = () => {
   };
 
   const renderCard = (index: number) => {
-    const isRevealed = revealedCards.includes(index) || matchedPairs === pairsCount || foundPairs.includes(cards[index]);
+    const isRevealed = revealedCards.includes(index) || matchedPairs === levels[selectedLevelIndex].pairsCount || foundPairs.includes(cards[index]);
     const value = isRevealed ? cards[index] : '?';
     const isClickable = !isRevealed && revealedCards.length < 2;
 
@@ -169,14 +181,12 @@ const Page: React.FC = () => {
     );
   };
 
-  const handleStartGame = () => {
-    if (!gameStarted) {
-      setShowGame(true);
-      setGameStarted(true);
-    }
+  const handleStartLevel = () => {
+    setShowGame(true);
+    setGameStarted(true);
   };
 
-  const calculateStars = () => {
+  const calculateStars = (): number => {
     if (errorsCount <= 2) {
       return 3;
     } else if (errorsCount <= 4) {
@@ -186,18 +196,35 @@ const Page: React.FC = () => {
     }
   };
 
-  const handleReplayGame = () => {
-    setMatchedPairs(0);
-    setErrorsCount(0);
-    setTimeLeft(90);
-    setFoundPairs([]);
-    setRevealedCards([]);
-    setStarsEarned(0); // Reset stars earned
-    setShowGame(false); // Hide the game temporarily, so it won't show stats
-    generateCards(); // Regenerate cards for the replayed game
+  const updateLevelStats = (stars: number) => {
+    const levelTimeTaken = levels[selectedLevelIndex].timeLimit - timeLeft;
+    const levelStatsCopy = { ...levelStats };
+    levelStatsCopy[selectedLevelIndex] = { errors: errorsCount, timeTaken: levelTimeTaken, stars: stars };
+    setLevelStats(levelStatsCopy);
+
+    const totalStarsEarned = Object.values(levelStatsCopy).reduce((acc, stat) => acc + stat.stars, 0);
+    setTotalStars(totalStarsEarned);
+
+    console.log(`Level ${selectedLevelIndex + 1} stats - Errors: ${errorsCount}, Time: ${levelTimeTaken} seconds, Stars: ${stars}`);
+  };
+
+  const handleReplayLevel = () => {
+    if (selectedLevelIndex !== null) {
+      const level = levels[selectedLevelIndex];
+      setCards(generateCards(level.pairsCount));
+      setRevealedCards([]);
+      setMatchedPairs(0);
+      setGameStarted(true); // Commencer le jeu immédiatement après avoir appuyé sur le bouton "Rejouer"
+      setGameOver(false);
+      setTimeLeft(level.timeLimit);
+      setFoundPairs([]);
+      setErrorsCount(0);
+      setStarsEarned(0);
+    }
   };
 
   const handleBackToMenu = () => {
+    setSelectedLevelIndex(null);
     setShowGame(false);
   };
 
@@ -207,53 +234,42 @@ const Page: React.FC = () => {
         Memory Game
       </Typography>
 
-      <Typography variant="h5" gutterBottom>
-        How to Play:
-      </Typography>
-      <Typography variant="body1" gutterBottom>
-        Memory is a classic card game in which the player needs to find all the matching pairs of cards.
-        To play, click on a card to reveal its number. Then, click on another card. If the numbers match, the pair is found.
-        If not, the cards will be hidden again. The game ends when all pairs are found.
-      </Typography>
-
-      <Typography variant="h5" gutterBottom>
-        Choose Difficulty Level:
-      </Typography>
-      <Grid container spacing={2} justifyContent="center">
-        {[...Array(6)].map((_, count) => (
-          <Grid item key={count}>
-            <StyledButton
-              selected={pairsCount === count + 2}
-              onClick={() => setPairsCount(count + 2)}
-            >
-              {count + 2} Pairs
-            </StyledButton>
-            {count + 2 === pairsCount && (
-              <StarsContainer>
-                {[...Array(3)].map((_, starIndex) => (
-                  <Star key={starIndex} color={starIndex < calculateStars() ? 'primary' : 'disabled'} />
-                ))}
-              </StarsContainer>
-            )}
+      {/* Content before the game starts */}
+      {!showGame && (
+        <div>
+          <Typography variant="h5" gutterBottom>
+            Choose Difficulty Level:
+          </Typography>
+          <Grid container spacing={2} justifyContent="center">
+            {levels.map((level, index) => (
+              <Grid item key={index}>
+                <StyledButton
+                  selected={selectedLevelIndex === index}
+                  onClick={() => setSelectedLevelIndex(index)}
+                >
+                  {level.pairsCount} Pairs
+                </StyledButton>
+              </Grid>
+            ))}
           </Grid>
-        ))}
-      </Grid>
-
-      {!gameStarted && (
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleStartGame}
-          sx={{
-            fontWeight: 'bold',
-            textTransform: 'none',
-            marginTop: '20px',
-          }}
-        >
-          Ready?
-        </Button>
+          {selectedLevelIndex !== null && !gameStarted && (
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleStartLevel}
+              sx={{
+                fontWeight: 'bold',
+                textTransform: 'none',
+                marginTop: '20px',
+              }}
+            >
+              Start Level
+            </Button>
+          )}
+        </div>
       )}
 
+      {/* During the game */}
       {showGame && (
         <div>
           <Grid container spacing={2} justifyContent="center">
@@ -263,25 +279,32 @@ const Page: React.FC = () => {
         </div>
       )}
 
-      <Snackbar open={gameOver} autoHideDuration={6000} onClose={() => setGameOver(false)}>
-        <MuiAlert onClose={() => setGameOver(false)} severity="error">
-          Game Over! You couldn't find all pairs in time with {errorsCount} errors.
-        </MuiAlert>
-      </Snackbar>
-
-      {matchedPairs === pairsCount && (
+      {/* After the game ends */}
+      {matchedPairs === levels[selectedLevelIndex]?.pairsCount && (
         <Box mt={2}>
           <Typography variant="h4">
-            Congratulations! You found all pairs in {90 - timeLeft} seconds with {errorsCount} errors.{' '}
+            Congratulations! You found all pairs in {levels[selectedLevelIndex].timeLimit - timeLeft} seconds with {errorsCount} errors.{' '}
             <Typography variant="h5">
-              You've earned {calculateStars()} stars!
+              You've earned {starsEarned} stars!
             </Typography>
           </Typography>
         </Box>
       )}
 
+      {/* Buttons during the game */}
       {gameStarted && (
         <Box mt={2}>
+          <ReplayButton
+            variant="contained"
+            color="primary"
+            onClick={handleReplayLevel}
+            sx={{
+              fontWeight: 'bold',
+              textTransform: 'none',
+            }}
+          >
+            Replay Level
+          </ReplayButton>
           <BackButton
             variant="contained"
             color="primary"
@@ -289,6 +312,7 @@ const Page: React.FC = () => {
             sx={{
               fontWeight: 'bold',
               textTransform: 'none',
+              marginLeft: '10px',
             }}
           >
             <ArrowBack />
@@ -297,19 +321,31 @@ const Page: React.FC = () => {
         </Box>
       )}
 
-      {!gameOver && matchedPairs !== pairsCount && (
-        <Box mt={2}>
-          <ReplayButton
-            variant="contained"
-            color="primary"
-            onClick={handleReplayGame}
-            sx={{
-              fontWeight: 'bold',
-              textTransform: 'none',
-            }}
-          >
-            Replay Game
-          </ReplayButton>
+      {/* Snackbar for game over */}
+      <Snackbar open={gameOver} autoHideDuration={6000} onClose={() => setGameOver(false)}>
+        <MuiAlert onClose={() => setGameOver(false)} severity="error">
+          Game Over! You couldn't find all pairs in time with {errorsCount} errors.
+        </MuiAlert>
+      </Snackbar>
+
+      {/* Total stars earned */}
+      {totalStars > 0 && (
+        <Box mt={4}>
+          <Typography variant="h4" align="center" gutterBottom>
+            Total Stars Earned: {totalStars}
+          </Typography>
+          <Typography variant="h5" align="center" gutterBottom>
+            Level Stats:
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            {Object.keys(levelStats).map((levelIndex) => (
+              <Box key={levelIndex}>
+                <Typography variant="h6">
+                  Level {parseInt(levelIndex) + 1} - Stars: {levelStats[parseInt(levelIndex)].stars}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
         </Box>
       )}
     </PageContainer>
