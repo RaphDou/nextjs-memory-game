@@ -36,7 +36,7 @@ Inspired by a classic card memory game, Memory Game is an interactive web applic
 ## Installation
 
 1. Clone the GitHub repository:
-git clone https://github.com/your-username/memory-game.git
+git clone [https://github.com/RaphDou/nextjs-memory-game](https://github.com/RaphDou/nextjs-memory-game)
 
 2. Navigate to the project directory:
 cd nextjs-memory-game
