@@ -5,7 +5,10 @@ const MyFooter: React.FC = () => {
   return (
     <footer>
       <Typography variant="body2" align="center" color="textSecondary">
-        © {new Date().getFullYear()} My App
+        © {new Date().getFullYear()}{' '}
+        <a href="https://github.com/RaphDou/nextjs-memory-game" target="_blank" rel="noopener noreferrer">
+          Github
+        </a>
       </Typography>
     </footer>
   );

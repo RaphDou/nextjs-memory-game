@@ -1,25 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import {
-  Button,
-  Container,
-  Typography,
-  useTheme,
-  styled,
-  Grid,
-  Card as MuiCard,
-  CardContent,
-  Snackbar,
-  Box,
-  Tooltip,
-} from '@mui/material';
+import { Container, Typography, useTheme, styled, Snackbar, Box, Tooltip, Grid } from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
-import { ArrowBack, Star } from '@mui/icons-material';
+import Card from '../components/card/card';
+import GameControls from '../components/gameControls/gameControls';
+import GameStats from '../components/gameStats/gameStats';
+import { Button } from '@mui/material';
 
-const Card = styled(MuiCard)({
-  cursor: 'pointer',
-});
-
+// Styled components for customizing Material-UI components
 const PageContainer = styled(Container)(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
@@ -29,31 +17,7 @@ const PageContainer = styled(Container)(({ theme }) => ({
   background: theme.palette.background.default,
 }));
 
-const StyledButton = styled(Button)<{ selected: boolean }>(({ theme, selected }) => ({
-  fontWeight: 'bold',
-  textTransform: 'none',
-  backgroundColor: selected ? theme.palette.primary.main : '#FFF',
-  color: selected ? '#FFF' : theme.palette.primary.main,
-  '&:hover': {
-    backgroundColor: theme.palette.primary.light,
-  },
-}));
-
-const Timer = styled(Typography)({
-  fontSize: '2rem',
-  margin: '10px',
-});
-
-const BackButton = styled(Button)({
-  fontWeight: 'bold',
-  textTransform: 'none',
-});
-
-const ReplayButton = styled(Button)({
-  fontWeight: 'bold',
-  textTransform: 'none',
-});
-
+// Define levels of the game with their properties
 const levels = [
   {
     name: 'Beginner',
@@ -81,9 +45,12 @@ const levels = [
   },
 ];
 
+// Main component for the memory game page
 const Page: React.FC = () => {
   const router = useRouter();
   const theme = useTheme();
+
+  // State variables for managing game state
   const [selectedLevelIndex, setSelectedLevelIndex] = useState<number | null>(null);
   const [cards, setCards] = useState<number[]>([]);
   const [revealedCards, setRevealedCards] = useState<number[]>([]);
@@ -98,12 +65,14 @@ const Page: React.FC = () => {
   const [totalStars, setTotalStars] = useState<number>(0);
   const [levelStats, setLevelStats] = useState<{ [key: number]: { errors: number; timeTaken: number; stars: number } }>({});
 
+  // Effect to initialize level when selected level index changes
   useEffect(() => {
     if (selectedLevelIndex !== null) {
       initializeLevel();
     }
   }, [selectedLevelIndex]);
 
+  // Initialize level based on selected level index
   const initializeLevel = () => {
     const level = levels[selectedLevelIndex];
     setCards(generateCards(level.pairsCount));
@@ -117,6 +86,7 @@ const Page: React.FC = () => {
     setStarsEarned(0);
   };
 
+  // Generate shuffled pairs of cards for the level
   const generateCards = (pairsCount: number): number[] => {
     const pairs = [];
     for (let i = 1; i <= pairsCount; i++) {
@@ -126,6 +96,7 @@ const Page: React.FC = () => {
     return pairs;
   };
 
+  // Effect to update timer during the game
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (gameStarted && !gameOver && selectedLevelIndex !== null && matchedPairs !== levels[selectedLevelIndex]?.pairsCount) {
@@ -143,6 +114,7 @@ const Page: React.FC = () => {
     return () => clearInterval(timer);
   }, [gameStarted, gameOver, matchedPairs, selectedLevelIndex]);
 
+  // Handle card click event
   const handleCardClick = (index: number) => {
     if (!gameStarted || revealedCards.length >= 2 || foundPairs.includes(cards[index]) || revealedCards.includes(index)) {
       return;
@@ -174,36 +146,30 @@ const Page: React.FC = () => {
     }
   };
 
+  // Render individual card based on its index
   const renderCard = (index: number) => {
     const isRevealed = revealedCards.includes(index) || matchedPairs === levels[selectedLevelIndex].pairsCount || foundPairs.includes(cards[index]);
-    const value = isRevealed ? cards[index] : '?';
     const isClickable = !isRevealed && revealedCards.length < 2;
 
     return (
       <Grid item xs={3} key={index}>
         <Card
+          value={cards[index]}
+          isRevealed={isRevealed}
+          isClickable={isClickable}
           onClick={() => isClickable && handleCardClick(index)}
-          style={{
-            backgroundColor: isRevealed ? '#FFF' : '#3f51b5',
-            pointerEvents: isClickable ? 'auto' : 'none',
-            boxShadow: isRevealed ? '0 0 10px rgba(0, 0, 0, 0.5)' : 'none',
-          }}
-        >
-          <CardContent>
-            <Typography variant="h3" align="center" style={{ color: isRevealed ? '#3f51b5' : '#FFF' }}>
-              {value}
-            </Typography>
-          </CardContent>
-        </Card>
+        />
       </Grid>
     );
   };
 
+  // Handle start level button click
   const handleStartLevel = () => {
     setShowGame(true);
     setGameStarted(true);
   };
 
+  // Calculate stars earned based on errors count
   const calculateStars = (): number => {
     if (errorsCount <= 2) {
       return 3;
@@ -214,6 +180,7 @@ const Page: React.FC = () => {
     }
   };
 
+  // Update level statistics after completing the level
   const updateLevelStats = (stars: number) => {
     const levelTimeTaken = levels[selectedLevelIndex].timeLimit - timeLeft;
     const levelStatsCopy = { ...levelStats };
@@ -226,6 +193,7 @@ const Page: React.FC = () => {
     console.log(`Level ${selectedLevelIndex + 1} stats - Errors: ${errorsCount}, Time: ${levelTimeTaken} seconds, Stars: ${stars}`);
   };
 
+  // Handle replay level button click
   const handleReplayLevel = () => {
     if (selectedLevelIndex !== null) {
       const level = levels[selectedLevelIndex];
@@ -241,6 +209,7 @@ const Page: React.FC = () => {
     }
   };
 
+  // Handle back to menu button click
   const handleBackToMenu = () => {
     setSelectedLevelIndex(null);
     setShowGame(false);
@@ -248,26 +217,28 @@ const Page: React.FC = () => {
 
   return (
     <PageContainer style={{ background: selectedLevelIndex !== null ? levels[selectedLevelIndex].background : theme.palette.background.default }}>
-      <Typography variant="h2" align="center" gutterBottom>
+      <Typography variant="h2" align="center" gutterBottom style={{ fontFamily: 'Arial, sans-serif', color: '#333' }}>
         Memory Game
       </Typography>
 
       {/* Content before the game starts */}
       {!showGame && (
         <div>
-          <Typography variant="h5" gutterBottom>
+          <Typography variant="h5" gutterBottom style={{ fontFamily: 'Arial, sans-serif', color: '#333' }}>
             Choose Difficulty Level:
           </Typography>
           <Grid container spacing={2} justifyContent="center">
             {levels.map((level, index) => (
               <Grid item key={index}>
                 <Tooltip title={level.description} arrow>
-                  <StyledButton
-                    selected={selectedLevelIndex === index}
+                  <Button
+                    variant="contained"
+                    color="primary"
                     onClick={() => setSelectedLevelIndex(index)}
+                    style={{ fontWeight: 'bold', textTransform: 'none', fontFamily: 'Arial, sans-serif' }}
                   >
                     {level.name}
-                  </StyledButton>
+                  </Button>
                 </Tooltip>
               </Grid>
             ))}
@@ -277,11 +248,7 @@ const Page: React.FC = () => {
               variant="contained"
               color="primary"
               onClick={handleStartLevel}
-              sx={{
-                fontWeight: 'bold',
-                textTransform: 'none',
-                marginTop: '20px',
-              }}
+              sx={{ fontWeight: 'bold', textTransform: 'none', marginTop: '20px', fontFamily: 'Arial, sans-serif' }}
             >
               Start Level
             </Button>
@@ -295,50 +262,27 @@ const Page: React.FC = () => {
           <Grid container spacing={2} justifyContent="center">
             {cards.map((_, index) => renderCard(index))}
           </Grid>
-          <Timer variant="h3">Time Left: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}</Timer>
+          <Typography variant="h3" style={{ fontFamily: 'Arial, sans-serif', color: '#333' }}>
+            Time Left: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+          </Typography>
         </div>
       )}
 
       {/* After the game ends */}
       {matchedPairs === levels[selectedLevelIndex]?.pairsCount && (
         <Box mt={2}>
-          <Typography variant="h4">
-            Congratulations! You found all pairs in {levels[selectedLevelIndex].timeLimit - timeLeft} seconds with {errorsCount} errors.{' '}
-            <Typography variant="h5">
-              You've earned {starsEarned} stars!
-            </Typography>
+          <Typography variant="h4" style={{ fontFamily: 'Arial, sans-serif', color: '#333' }}>
+            Congratulations! You found all pairs in {levels[selectedLevelIndex].timeLimit - timeLeft} seconds with {errorsCount} errors.
+          </Typography>
+          <Typography variant="h5" style={{ fontFamily: 'Arial, sans-serif', color: '#333' }}>
+            You've earned {starsEarned} stars!
           </Typography>
         </Box>
       )}
 
       {/* Buttons during the game */}
       {gameStarted && (
-        <Box mt={2}>
-          <ReplayButton
-            variant="contained"
-            color="primary"
-            onClick={handleReplayLevel}
-            sx={{
-              fontWeight: 'bold',
-              textTransform: 'none',
-            }}
-          >
-            Replay Level
-          </ReplayButton>
-          <BackButton
-            variant="contained"
-            color="primary"
-            onClick={handleBackToMenu}
-            sx={{
-              fontWeight: 'bold',
-              textTransform: 'none',
-              marginLeft: '10px',
-            }}
-          >
-            <ArrowBack />
-            Back to Menu
-          </BackButton>
-        </Box>
+        <GameControls onReplay={handleReplayLevel} onBackToMenu={handleBackToMenu} />
       )}
 
       {/* Snackbar for game over */}
@@ -350,23 +294,7 @@ const Page: React.FC = () => {
 
       {/* Total stars earned */}
       {totalStars > 0 && (
-        <Box mt={4}>
-          <Typography variant="h4" align="center" gutterBottom>
-            Total Stars Earned: {totalStars}
-          </Typography>
-          <Typography variant="h5" align="center" gutterBottom>
-            Level Stats:
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            {Object.keys(levelStats).map((levelIndex) => (
-              <Box key={levelIndex}>
-                <Typography variant="h6">
-                  Level {parseInt(levelIndex) + 1} - Stars: {levelStats[parseInt(levelIndex)].stars}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-        </Box>
+        <GameStats totalStars={totalStars} levelStats={levelStats} />
       )}
     </PageContainer>
   );

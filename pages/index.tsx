@@ -1,20 +1,23 @@
+import React from 'react';
 import Head from 'next/head';
 import MyAppBar from '../components/appbar/appbar';
 import MyFooter from '../components/footer/footer';
 import Page from './page';
 
-export default function Game() {
+const Index = () => {
   return (
-    <div>
+    <>
       <Head>
         <title>Memory Game</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <MyAppBar />
-      <main>
+      <div style={{ flexGrow: 1 }}>
         <Page />
-      </main>
+      </div>
       <MyFooter />
-    </div>
+    </>
   );
-}
+};
+
+export default Index;
