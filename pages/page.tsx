@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Container, Typography, useTheme, styled, Snackbar, Box, Tooltip, Grid } from '@mui/material';
-import MuiAlert from '@mui/material/Alert';
+import { Container, Typography, useTheme, styled, Box, Tooltip, Grid, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
 import Card from '../components/card/card';
 import GameControls from '../components/gameControls/gameControls';
 import GameStats from '../components/gameStats/gameStats';
-import { Button } from '@mui/material';
 
-// Styled components for customizing Material-UI components
 const PageContainer = styled(Container)(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
@@ -17,7 +14,6 @@ const PageContainer = styled(Container)(({ theme }) => ({
   background: theme.palette.background.default,
 }));
 
-// Define levels of the game with their properties
 const levels = [
   {
     name: 'Beginner',
@@ -40,17 +36,15 @@ const levels = [
     description: 'An advanced level for experts. Match 8 pairs within 120 seconds with a maximum of 5 errors.',
     pairsCount: 8,
     timeLimit: 120,
-    maxErrors: 5,
+    maxErrors: 6,
     background: '#FF6F61',
   },
 ];
 
-// Main component for the memory game page
 const Page: React.FC = () => {
   const router = useRouter();
   const theme = useTheme();
 
-  // State variables for managing game state
   const [selectedLevelIndex, setSelectedLevelIndex] = useState<number | null>(null);
   const [cards, setCards] = useState<number[]>([]);
   const [revealedCards, setRevealedCards] = useState<number[]>([]);
@@ -64,15 +58,14 @@ const Page: React.FC = () => {
   const [starsEarned, setStarsEarned] = useState<number>(0);
   const [totalStars, setTotalStars] = useState<number>(0);
   const [levelStats, setLevelStats] = useState<{ [key: number]: { errors: number; timeTaken: number; stars: number } }>({});
+  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
 
-  // Effect to initialize level when selected level index changes
   useEffect(() => {
     if (selectedLevelIndex !== null) {
       initializeLevel();
     }
   }, [selectedLevelIndex]);
 
-  // Initialize level based on selected level index
   const initializeLevel = () => {
     const level = levels[selectedLevelIndex];
     setCards(generateCards(level.pairsCount));
@@ -86,7 +79,6 @@ const Page: React.FC = () => {
     setStarsEarned(0);
   };
 
-  // Generate shuffled pairs of cards for the level
   const generateCards = (pairsCount: number): number[] => {
     const pairs = [];
     for (let i = 1; i <= pairsCount; i++) {
@@ -96,7 +88,6 @@ const Page: React.FC = () => {
     return pairs;
   };
 
-  // Effect to update timer during the game
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (gameStarted && !gameOver && selectedLevelIndex !== null && matchedPairs !== levels[selectedLevelIndex]?.pairsCount) {
@@ -104,6 +95,7 @@ const Page: React.FC = () => {
         setTimeLeft((prevTimeLeft) => {
           if (prevTimeLeft === 0) {
             clearInterval(timer);
+            setDialogOpen(true);
             setGameOver(true);
             return prevTimeLeft;
           }
@@ -114,9 +106,8 @@ const Page: React.FC = () => {
     return () => clearInterval(timer);
   }, [gameStarted, gameOver, matchedPairs, selectedLevelIndex]);
 
-  // Handle card click event
   const handleCardClick = (index: number) => {
-    if (!gameStarted || revealedCards.length >= 2 || foundPairs.includes(cards[index]) || revealedCards.includes(index)) {
+    if (!gameStarted || revealedCards.length >= 2 || foundPairs.includes(cards[index]) || revealedCards.includes(index) || gameOver) {
       return;
     }
 
@@ -146,10 +137,9 @@ const Page: React.FC = () => {
     }
   };
 
-  // Render individual card based on its index
   const renderCard = (index: number) => {
     const isRevealed = revealedCards.includes(index) || matchedPairs === levels[selectedLevelIndex].pairsCount || foundPairs.includes(cards[index]);
-    const isClickable = !isRevealed && revealedCards.length < 2;
+    const isClickable = !isRevealed && revealedCards.length < 2 && !gameOver;
 
     return (
       <Grid item xs={3} key={index}>
@@ -163,13 +153,11 @@ const Page: React.FC = () => {
     );
   };
 
-  // Handle start level button click
   const handleStartLevel = () => {
     setShowGame(true);
     setGameStarted(true);
   };
 
-  // Calculate stars earned based on errors count
   const calculateStars = (): number => {
     if (errorsCount <= 2) {
       return 3;
@@ -180,7 +168,6 @@ const Page: React.FC = () => {
     }
   };
 
-  // Update level statistics after completing the level
   const updateLevelStats = (stars: number) => {
     const levelTimeTaken = levels[selectedLevelIndex].timeLimit - timeLeft;
     const levelStatsCopy = { ...levelStats };
@@ -193,14 +180,13 @@ const Page: React.FC = () => {
     console.log(`Level ${selectedLevelIndex + 1} stats - Errors: ${errorsCount}, Time: ${levelTimeTaken} seconds, Stars: ${stars}`);
   };
 
-  // Handle replay level button click
   const handleReplayLevel = () => {
     if (selectedLevelIndex !== null) {
       const level = levels[selectedLevelIndex];
       setCards(generateCards(level.pairsCount));
       setRevealedCards([]);
       setMatchedPairs(0);
-      setGameStarted(true); // Start the game immediately upon clicking "Replay"
+      setGameStarted(true);
       setGameOver(false);
       setTimeLeft(level.timeLimit);
       setFoundPairs([]);
@@ -209,7 +195,6 @@ const Page: React.FC = () => {
     }
   };
 
-  // Handle back to menu button click
   const handleBackToMenu = () => {
     setSelectedLevelIndex(null);
     setShowGame(false);
@@ -222,11 +207,15 @@ const Page: React.FC = () => {
           Memory Game
         </Typography>
 
-        {/* Content before the game starts */}
         {!showGame && (
           <div className="pre-game-content">
-            <Typography variant="h5" gutterBottom>
-              Choose Difficulty Level:
+            <Typography variant="h5" gutterBottom style={{ display: 'flex', alignItems: 'center' }}>
+              Choose Difficulty Level:&nbsp;
+              {selectedLevelIndex !== null && (
+                <Typography variant="subtitle1" gutterBottom style={{ marginLeft: '5px' }}>
+                  {levels[selectedLevelIndex].name}
+                </Typography>
+              )}
             </Typography>
             <Grid container spacing={2} justifyContent="center">
               {levels.map((level, index) => (
@@ -243,9 +232,7 @@ const Page: React.FC = () => {
                   </Tooltip>
                 </Grid>
               ))}
-              
-
-<Grid item xs={12} justifyContent="center" container> {/* Add "container" here */}
+              <Grid item xs={12} container justifyContent="center">
                 <Button
                   variant="contained"
                   color="primary"
@@ -259,7 +246,6 @@ const Page: React.FC = () => {
           </div>
         )}
 
-        {/* During the game */}
         {showGame && (
           <div className="game-content">
             <Grid container spacing={2} justifyContent="center">
@@ -271,7 +257,6 @@ const Page: React.FC = () => {
           </div>
         )}
 
-        {/* After the game ends */}
         {matchedPairs === levels[selectedLevelIndex]?.pairsCount && (
           <Box mt={2} className="end-game-content">
             <Typography variant="h4" className="congrats-message">
@@ -283,19 +268,24 @@ const Page: React.FC = () => {
           </Box>
         )}
 
-        {/* Buttons during the game */}
-        {gameStarted && (
+        <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+          <DialogTitle>Game Over!</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              You couldn't find all pairs in time with {errorsCount} errors.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDialogOpen(false)} color="primary">
+              Close
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {(gameStarted || gameOver) && (
           <GameControls onReplay={handleReplayLevel} onBackToMenu={handleBackToMenu} />
         )}
 
-        {/* Snackbar for game over */}
-        <Snackbar open={gameOver} autoHideDuration={6000} onClose={() => setGameOver(false)}>
-          <MuiAlert onClose={() => setGameOver(false)} severity="error">
-            Game Over! You couldn't find all pairs in time with {errorsCount} errors.
-          </MuiAlert>
-        </Snackbar>
-
-        {/* Total stars earned */}
         {totalStars > 0 && (
           <GameStats totalStars={totalStars} levelStats={levelStats} />
         )}
