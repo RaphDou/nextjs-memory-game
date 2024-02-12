@@ -217,85 +217,89 @@ const Page: React.FC = () => {
 
   return (
     <PageContainer style={{ background: selectedLevelIndex !== null ? levels[selectedLevelIndex].background : theme.palette.background.default }}>
-      <Typography variant="h2" align="center" gutterBottom style={{ fontFamily: 'Arial, sans-serif', color: '#333' }}>
-        Memory Game
-      </Typography>
+      <div className="content-container">
+        <Typography variant="h2" align="center" gutterBottom className="title">
+          Memory Game
+        </Typography>
 
-      {/* Content before the game starts */}
-      {!showGame && (
-        <div>
-          <Typography variant="h5" gutterBottom style={{ fontFamily: 'Arial, sans-serif', color: '#333' }}>
-            Choose Difficulty Level:
-          </Typography>
-          <Grid container spacing={2} justifyContent="center">
-            {levels.map((level, index) => (
-              <Grid item key={index}>
-                <Tooltip title={level.description} arrow>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => setSelectedLevelIndex(index)}
-                    style={{ fontWeight: 'bold', textTransform: 'none', fontFamily: 'Arial, sans-serif' }}
-                  >
-                    {level.name}
-                  </Button>
-                </Tooltip>
+        {/* Content before the game starts */}
+        {!showGame && (
+          <div className="pre-game-content">
+            <Typography variant="h5" gutterBottom>
+              Choose Difficulty Level:
+            </Typography>
+            <Grid container spacing={2} justifyContent="center">
+              {levels.map((level, index) => (
+                <Grid item key={index}>
+                  <Tooltip title={level.description} arrow>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={() => setSelectedLevelIndex(index)}
+                      className="level-button"
+                    >
+                      {level.name}
+                    </Button>
+                  </Tooltip>
+                </Grid>
+              ))}
+              
+
+<Grid item xs={12} justifyContent="center" container> {/* Add "container" here */}
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleStartLevel}
+                  className="start-button"
+                >
+                  Start Level
+                </Button>
               </Grid>
-            ))}
-          </Grid>
-          {selectedLevelIndex !== null && !gameStarted && (
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleStartLevel}
-              sx={{ fontWeight: 'bold', textTransform: 'none', marginTop: '20px', fontFamily: 'Arial, sans-serif' }}
-            >
-              Start Level
-            </Button>
-          )}
-        </div>
-      )}
+            </Grid>
+          </div>
+        )}
 
-      {/* During the game */}
-      {showGame && (
-        <div>
-          <Grid container spacing={2} justifyContent="center">
-            {cards.map((_, index) => renderCard(index))}
-          </Grid>
-          <Typography variant="h3" style={{ fontFamily: 'Arial, sans-serif', color: '#333' }}>
-            Time Left: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
-          </Typography>
-        </div>
-      )}
+        {/* During the game */}
+        {showGame && (
+          <div className="game-content">
+            <Grid container spacing={2} justifyContent="center">
+              {cards.map((_, index) => renderCard(index))}
+            </Grid>
+            <Typography variant="h3" className="timer">
+              Time Left: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+            </Typography>
+          </div>
+        )}
 
-      {/* After the game ends */}
-      {matchedPairs === levels[selectedLevelIndex]?.pairsCount && (
-        <Box mt={2}>
-          <Typography variant="h4" style={{ fontFamily: 'Arial, sans-serif', color: '#333' }}>
-            Congratulations! You found all pairs in {levels[selectedLevelIndex].timeLimit - timeLeft} seconds with {errorsCount} errors.
-          </Typography>
-          <Typography variant="h5" style={{ fontFamily: 'Arial, sans-serif', color: '#333' }}>
-            You've earned {starsEarned} stars!
-          </Typography>
-        </Box>
-      )}
+        {/* After the game ends */}
+        {matchedPairs === levels[selectedLevelIndex]?.pairsCount && (
+          <Box mt={2} className="end-game-content">
+            <Typography variant="h4" className="congrats-message">
+              Congratulations! You found all pairs in {levels[selectedLevelIndex].timeLimit - timeLeft} seconds with {errorsCount} errors.
+            </Typography>
+            <Typography variant="h5" className="stars-earned">
+              You've earned {starsEarned} stars!
+            </Typography>
+          </Box>
+        )}
 
-      {/* Buttons during the game */}
-      {gameStarted && (
-        <GameControls onReplay={handleReplayLevel} onBackToMenu={handleBackToMenu} />
-      )}
+        {/* Buttons during the game */}
+        {gameStarted && (
+          <GameControls onReplay={handleReplayLevel} onBackToMenu={handleBackToMenu} />
+        )}
 
-      {/* Snackbar for game over */}
-      <Snackbar open={gameOver} autoHideDuration={6000} onClose={() => setGameOver(false)}>
-        <MuiAlert onClose={() => setGameOver(false)} severity="error">
-          Game Over! You couldn't find all pairs in time with {errorsCount} errors.
-        </MuiAlert>
-      </Snackbar>
+        {/* Snackbar for game over */}
+        <Snackbar open={gameOver} autoHideDuration={6000} onClose={() => setGameOver(false)}>
+          <MuiAlert onClose={() => setGameOver(false)} severity="error">
+            Game Over! You couldn't find all pairs in time with {errorsCount} errors.
+          </MuiAlert>
+        </Snackbar>
 
-      {/* Total stars earned */}
-      {totalStars > 0 && (
-        <GameStats totalStars={totalStars} levelStats={levelStats} />
-      )}
+        {/* Total stars earned */}
+        {totalStars > 0 && (
+          <GameStats totalStars={totalStars} levelStats={levelStats} />
+        )}
+      </div>
     </PageContainer>
   );
 };
